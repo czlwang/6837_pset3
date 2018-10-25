@@ -79,7 +79,8 @@ bool Group::intersect(const Ray &r, float tmin, Hit &h) const
 
 
 Plane::Plane(const Vector3f &normal, float d, Material *m) : Object3D(m) {
-    // TODO implement Plane constructor
+    _normal = normal;
+    _d = d;
 }
 bool Plane::intersect(const Ray &r, float tmin, Hit &h) const
 {
