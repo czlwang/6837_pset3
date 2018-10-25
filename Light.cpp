@@ -18,7 +18,14 @@
                                  Vector3f &intensity, 
                                  float &distToLight) const
     {
-        // TODO Implement point light source
+        
         // tolight, intensity, distToLight are outputs
+        Vector3f d = p-_position;
+        Vector3f d_normalize = d;
+        d_normalize.normalize();
+        
+        tolight = d_normalize;
+        intensity = _color/(d.absSquared()*_falloff);
+        distToLight = d.abs();
     }
 
