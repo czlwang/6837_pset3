@@ -83,20 +83,15 @@ Plane::Plane(const Vector3f &normal, float d, Material *m) : Object3D(m) {
 }
 bool Plane::intersect(const Ray &r, float tmin, Hit &h) const
 {
-    // TODO implement
     float t = -(-_d + Vector3f::dot(_normal, r.getOrigin())) / Vector3f::dot(_normal, r.getDirection());
     if(t <= tmin)
     {
         return false;
     }
     if (t < h.getT()) {
-//        std::cout << "plane hit " << std::endl;
-//        std::cout << "_d "  << _d << " " << _normal[0] << " " << _normal[1] << " " << _normal[2] << std::endl;
-//        std::cout << "t " << t << std::endl;
         Vector3f normal = _normal;
         normal = normal.normalized();
         h.set(t, this->material, normal);
-//        std::cout << "t position " << r.pointAtParameter(t)[0] << " "  << r.pointAtParameter(t)[1] << " " << r.pointAtParameter(t)[2] << std::endl;
         return true;
     }
     return false;
@@ -113,19 +108,13 @@ bool Triangle::intersect(const Ray &r, float tmin, Hit &h) const
     
     if(!(beta + gamma <= 1 && beta >= 0 && gamma >=0) || t<=tmin)
     {
-//        std::cout << "triangle miss " << std::endl;
         return false;
     }
     
     if (t < h.getT()) {
         Vector3f normal = alpha*_normals[0] + beta*_normals[1] + gamma*_normals[2];
         normal = normal.normalized();
-        std::cout << "triangle hit " << std::endl;
-        std::cout << "t " << t << std::endl;
         h.set(t, this->material, normal);
-//        std::cout << "alpha" << " " << alpha << " beta " << beta << " gamma " << gamma << std::endl;
-//        std::cout << h << " " << normal << std::endl;
-        std::cout << "t position " << r.pointAtParameter(t)[0] << " "  << r.pointAtParameter(t)[1] << " " << r.pointAtParameter(t)[2] << std::endl;
         return true;
     }
     return false;
