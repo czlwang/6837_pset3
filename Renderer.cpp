@@ -66,29 +66,63 @@ Renderer::Render()
 }
 
 
-
 Vector3f
 Renderer::traceRay(const Ray &r,
     float tmin,
     int bounces,
     Hit &h) const
 {
+//    std::cout << "bounces " << bounces << std::endl;
+    float epsilon = 0.01;
     // The starter code only implements basic drawing of sphere primitives.
     // You will implement phong shading, recursive ray tracing, and shadow rays.
-
     if (_scene.getGroup()->intersect(r, tmin, h)) {
         Vector3f shade = Vector3f::ZERO;
+        Vector3f p = r.pointAtParameter(h.getT());
         for(int i=0; i<_scene.getNumLights(); i++){
-            Vector3f p = r.pointAtParameter(h.getT());
             Vector3f toLight;
             Vector3f intensity;
             float distanceToLight;
             _scene.getLight(i)->getIllumination(p, toLight, intensity, distanceToLight);
-            shade += h.getMaterial()->shade(r, h, toLight, intensity);
+            
+            Vector3f shadowDirection = toLight.normalized();
+            Vector3f shadowOrigin = p + shadowDirection*epsilon;
+            Hit shadowHit;
+            Ray shadowRay = Ray(shadowOrigin, shadowDirection);
+            bool shadowed = false;
+            if(_scene.getGroup()->intersect(shadowRay, tmin, shadowHit)){
+                float shadowDistance = (p - shadowRay.pointAtParameter(shadowHit.getT())).abs();
+//                    std::cout << "shadowDistance " << shadowDistance << std::endl;
+//                    std::cout << "distanceToLight " << distanceToLight << std::endl;
+                if(shadowDistance < distanceToLight){
+                    shadowed = true && _args.shadows;
+                }
+            }
+            if(!shadowed){
+//                    std::cout << "not shadowed" << std::endl;
+                shade += h.getMaterial()->shade(r, h, toLight, intensity);
+            }else{
+//                    std::cout << "shadowed" << std::endl;
+
+            }
         }
-        return shade + _scene.getAmbientLight();
-    } else {
-        return Vector3f(0, 0, 0);
-    };
+        Vector3f ambient = _scene.getAmbientLight()*h.getMaterial()->getDiffuseColor();
+        Vector3f direct = shade + ambient;
+        Vector3f indirect = Vector3f::ZERO;
+        if(bounces > 0){
+            Vector3f reflected = r.getDirection() - 2*Vector3f::dot(r.getDirection(), h.getNormal().normalized())*h.getNormal().normalized();
+            reflected = reflected.normalized();
+            Vector3f reflectedOrigin = p + reflected*epsilon;
+            Ray reflectedRay = Ray(reflectedOrigin, reflected);
+            Hit reflectHit;
+            indirect = traceRay(reflectedRay, tmin, bounces - 1, reflectHit);
+            indirect = h.getMaterial()->getSpecularColor()*indirect;
+//            std::cout << "indirect " << indirect[0] << " " << indirect[1] << " " << indirect[2] << std::endl;
+        }
+//        std::cout << "direct " << direct[0] << " " << direct[1] << " " << direct[2] << std::endl;
+        return direct+indirect;
+    
+    }
+    return _scene.getBackgroundColor(r.getDirection());
 }
 

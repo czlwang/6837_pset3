@@ -77,7 +77,6 @@ bool Group::intersect(const Ray &r, float tmin, Hit &h) const
     // END STARTER
 }
 
-
 Plane::Plane(const Vector3f &normal, float d, Material *m) : Object3D(m) {
     _normal = normal;
     _d = d;
@@ -85,11 +84,50 @@ Plane::Plane(const Vector3f &normal, float d, Material *m) : Object3D(m) {
 bool Plane::intersect(const Ray &r, float tmin, Hit &h) const
 {
     // TODO implement
+    float t = -(-_d + Vector3f::dot(_normal, r.getOrigin())) / Vector3f::dot(_normal, r.getDirection());
+    if(t <= tmin)
+    {
+        return false;
+    }
+    if (t < h.getT()) {
+//        std::cout << "plane hit " << std::endl;
+//        std::cout << "_d "  << _d << " " << _normal[0] << " " << _normal[1] << " " << _normal[2] << std::endl;
+//        std::cout << "t " << t << std::endl;
+        Vector3f normal = _normal;
+        normal = normal.normalized();
+        h.set(t, this->material, normal);
+//        std::cout << "t position " << r.pointAtParameter(t)[0] << " "  << r.pointAtParameter(t)[1] << " " << r.pointAtParameter(t)[2] << std::endl;
+        return true;
+    }
     return false;
 }
 bool Triangle::intersect(const Ray &r, float tmin, Hit &h) const 
 {
     // TODO implement
+    Matrix3f A = Matrix3f(_v[0]-_v[1], _v[0]-_v[2], r.getDirection());
+    Vector3f sol = A.inverse()*(_v[0]-r.getOrigin());
+    float beta = sol[0];
+    float gamma = sol[1];
+    float alpha = 1 - beta - gamma;
+    float t = sol[2];
+    
+    if(!(beta + gamma <= 1 && beta >= 0 && gamma >=0) || t<=tmin)
+    {
+//        std::cout << "triangle miss " << std::endl;
+        return false;
+    }
+    
+    if (t < h.getT()) {
+        Vector3f normal = alpha*_normals[0] + beta*_normals[1] + gamma*_normals[2];
+        normal = normal.normalized();
+        std::cout << "triangle hit " << std::endl;
+        std::cout << "t " << t << std::endl;
+        h.set(t, this->material, normal);
+//        std::cout << "alpha" << " " << alpha << " beta " << beta << " gamma " << gamma << std::endl;
+//        std::cout << h << " " << normal << std::endl;
+        std::cout << "t position " << r.pointAtParameter(t)[0] << " "  << r.pointAtParameter(t)[1] << " " << r.pointAtParameter(t)[2] << std::endl;
+        return true;
+    }
     return false;
 }
 
@@ -97,9 +135,25 @@ bool Triangle::intersect(const Ray &r, float tmin, Hit &h) const
 Transform::Transform(const Matrix4f &m,
     Object3D *obj) : _object(obj) {
     // TODO implement Transform constructor
+    _M = m;
 }
 bool Transform::intersect(const Ray &r, float tmin, Hit &h) const
 {
-    // TODO implement
-    return false;
+//    return _object->intersect(r, tmin, h);
+    Matrix4f M_inverse = _M.inverse();
+    Vector4f newOrigin = M_inverse*Vector4f(r.getOrigin(),1);
+    Vector4f newDirection = M_inverse*Vector4f(r.getDirection(),0);
+    Ray new_r = Ray(newOrigin.xyz(), newDirection.xyz());
+    bool result = _object->intersect(new_r, tmin, h);
+    if(result)
+    {
+        Vector4f normal = Vector4f(h.getNormal(),0);
+        Matrix4f M_inverse_transpose = M_inverse;
+        M_inverse_transpose.transpose();
+        Vector3f newNormal = (M_inverse_transpose*normal).xyz();
+        newNormal.normalize();
+        h.set(h.getT(), h.material, newNormal);
+    }
+    return result;
 }
+

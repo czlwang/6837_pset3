@@ -20,7 +20,7 @@
     {
         
         // tolight, intensity, distToLight are outputs
-        Vector3f d = p-_position;
+        Vector3f d = _position-p;
         Vector3f d_normalize = d;
         d_normalize.normalize();
         
